@@ -15,7 +15,7 @@ The explainer outlines the motivating use cases for the API, its key features, a
 While `window.print()` is a basic function that triggers the browser's default print dialog, the `navigator.printing` API provides a more comprehensive set of methods and options for querying local printers, submitting print jobs with customization options, managing print jobs, and customizing print workflows. This extended functionality allows developers to have more control over the printing process and enables advanced use cases, such as printing specific pages or sections of a document, setting print options like paper size and orientation, and monitoring the status of print jobs.
 
 ### Leveraging Progressive Web Apps
-The new Web API can motivate developers to switch to Progressive Web Apps (PWAs) by offering enhanced printing capabilities that were traditionally limited to native applications.
+The new Web API can motivate developers to switch to Progressive Web Apps (PWAs) by offering enhanced printing capabilities that were traditionally limited to native applications (in particular, support for Printer Redirection).
 
 ## Key Features
 The API primarily focuses on listing local printers and their capabilities and sending print jobs to them.
@@ -358,10 +358,10 @@ A basic precaution is to introduce a new permissions-policy called `"printing"` 
 A more sophisticated approach would include creating a permissions surface resembling those for camera/microphone and prompting the user whether an origin should be granted access to local printers.
 
 ### Forging Printer Jobs
-A malicious website could use the printJob() method to create and send fake printer jobs to the user's printer, causing it to waste paper and ink or potentially print malicious content; ihis could even potentially happen with a legitimate website due an inaccuracy in client-side printer handling.
+A malicious website could use the printJob() method to create and send fake printer jobs to the user's printer, causing it to waste paper and ink or potentially print malicious content; this could even potentially happen with a legitimate website due an inaccuracy in client-side printer handling.
 
 #### Mitigation
-Submitting print jobs will require an explicit consent from the user similar to the system dialog shown during `window.print()`.
+Submitting print jobs will require an explicit consent from the user similar to the print dialog shown during `window.print()`.
 
 ## Considered Alternatives
 
@@ -392,7 +392,7 @@ interface Printing {
 };
 ```
 
-Both approaches have their own pros and cons, which have been debated in various situations. However, we ultimately chose to proceed with an API design based on separate interfaces for printers and print jobs, as we believe this approach offers greater clarity and ease of use. By using this approach, the API consumer can clearly understand which methods and properties are associated with printers and which are associated with print jobs and organize the application logic accordingly.
+Both approaches have their own pros and cons, which have been debated in various situations. However, a decision was made to adopt an API design that utilizes distinct interfaces for printers and print jobs thus providing better clarity and ease of use. By using this approach, the API consumer can clearly understand which methods and properties are associated with printers and which are associated with print jobs and organize the application logic accordingly.
 
 ### Weak Typing
 The most popular NodeJS implementation of IPP ([ipp](https://www.npmjs.com/package/ipp) module) relies on weak typing for printer and job attributes. In other words, the proposed interface could be simplified to (note the `object` instead of `PrinterAttributes`/`JobTemplateAttributes`):
@@ -418,12 +418,7 @@ interface Printer {
 };
 ```
 
-While this approach can provide flexibility and ease of use in some cases, it can also lead to errors and unexpected behavior, especially in large and complex codebases. For this reason we decided to rely on the built-in WebIDL type checking, hence providing an additional layer of safety and reliability for the API.
+While this approach can provide flexibility and ease of use in some cases, it can also lead to errors and unexpected behavior, especially in large and complex codebases. For this reason a better option would be to rely on the built-in WebIDL type checking, hence providing an additional layer of safety and reliability for the API.
 * The generated code ensures that only correct types of data are passed between javascript and the API implementation, reducing the overhead of error-prone manual type checking.
 * Enum/dictionary bindings improve language support.
 * Erroneous calls reject early with a `TypeError` and offer developer-friendly error descriptions.
-
-### Printer.cancel() as a promise
-TBD
-
-###
