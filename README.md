@@ -2,30 +2,33 @@
 
 ## Introduction
 
-The `navigator.printing` Web API is a proposed standard for enabling printer-related functionality in web applications. This API provides a set of JavaScript methods that allow developers to query local printers, submit print jobs, and manage print job options and status directly from web applications. To represent these concepts, it relies on the attribute names and semantics from the IPP printing standards.
+The `navigator.printing` Web API is a proposed standard for enabling printer-related functionality in web applications. This API provides a set of JavaScript methods that allow developers to query local printers, submit print jobs, and manage print job options and status directly from web applications. To represent these concepts, it relies on the attribute names and semantics from the Internet Printing Protocol (IPP) specifications.
 
-Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents, sending print jobs from web applications to local printers has traditionally required various workarounds such as relying on third-party plugins or polyfilling via `window.print()`; `navigator.printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
+Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents, sending print jobs from web applications to local printers has traditionally required various workarounds such as relying on third-party plugins or polyfilling via `window.print()`; the `navigator.printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
 
 The explainer outlines the motivating use cases for the API, its key features, and how it can benefit web developers and users alike.
 
 ## Motivating Use Cases
 
-Although `window.print()` offers basic printing functionality through the browser's default print dialog, it is a relatively simple API. Developers' capabilities are restricted to selecting a file for printing and triggering the print dialog, which places the decision-making responsibility solely on the end user. To address these limitations and facilitate advanced use cases, we aim to provide developers with greater control over the printing process and expand the range of options available to them.
+Although `window.print()` offers basic printing functionality through the browser's default print dialog, it is a relatively simple API. Developers' capabilities are restricted to selecting a file for printing and triggering the print dialog, which places the decision-making responsibility solely on the end user. While this is generally perceived as a right thing on the Web, users might benefit in a number of ways from shifting some of this control to the application developer.
 
-### Customizing Print Settings
-The enhanced features aim to give developers greater influence over the printing process of a document. These capabilities include selecting the printer without requiring user input, printing specific pages or sections of the document, and adjusting print settings such as paper size, orientation, or finishings directly through the script.
+### Streamlining Workflows
+First and foremost, this shift calls for a more streamlined and intuitive printing experience. Developers can design print workflows that automate repetitive tasks, preconfigure print settings with respect to a particular printer's capabilities, and eliminate unnecessary user interactions.
 
 ### Knowing Your Printers
-To enable customization of settings, developers need to have knowledge about the capabilities of the printer. The API provides a convenient method for accessing this information, which enhances the printing experience by allowing developers to retrieve relevant details about what the printer can and cannot do.
+To enable customization of settings, developers need to have knowledge about the capabilities of the printer. The API provides a convenient method for accessing this information, which enhances the printing experience by allowing developers to retrieve relevant details about what the printer can and cannot do. A few examples:
+* If the printer supports high-resolution printing, the application can automatically select the appropriate print resolution, resulting in sharper and more detailed output.
+* If the printer supports duplex printing, the application can prompt the user to print double-sided, saving paper and reducing printing time.
+* Access to supported media sizes empowers the application to generate print-ready files by adjusting page layouts, margins, or scaling, effectively ensuring that the content fits properly on the printed page without any cropping or distortion.
 
-### Canceling & Tracking Print Jobs
-When users utilize `window.print()`, they have limited visibility and control over the printing process. However, the API fills this gap by offering the ability to track the progress of print jobs and allowing users to cancel them if needed. This functionality provides users with a way to monitor and influence the state transitions of their print jobs, enhancing their overall printing experience.
+### Observing the Printing Pipeline
+When users utilize `window.print()`, they have limited visibility and control over the printing process - usually it's scoped to hidden system UI surfaces & system notifications that cannot be accessed by the app. The API strives to fill this gap by offering the ability to track the progress of print jobs as well as cancel them if needed directly to the applications, creating a more evident and clear printing experience via custom information surfaces.
 
 ### Improving Error Handling
-Similarly to the previous point, the `window.print()` method lacks built-in error handling mechanisms. If a print job fails or encounters an error, the method does not provide meaningful feedback or ways to handle the error effectively.
+Similarly to the previous point, there are no built-in error handling mechanisms -- this effectively leaves the user alone against the print system when someting goes wrong during printing. With more control over the printing process, apps can wrap up raw printing errors into more elaborate descriptions (what went wrong and why?) or suggest useful tips for troubleshooting common errors (potentially even going as far as providing links to vendor websites or user manuals for specific printers since model info is also available now).
 
 ### Supporting Remote Printing
-The proposed API methods facilitate printer forwarding by enabling the remote client to access essential information about printers on the near side. This allows the remote client to interact with and control those printers as if they were directly connected to the remote client itself, enhancing the seamless integration and operation of printers in the remote environment.
+The proposed API methods facilitate printer forwarding by enabling the remote client to access essential information about printers on the near side: this allows the remote client to interact with and control those printers as if they were directly connected to the remote client itself, enhancing the seamless integration and operation of printers in the remote environment.
 
 ## Key Features
 The API primarily focuses on listing local printers and their capabilities and sending print jobs to them.
@@ -35,11 +38,11 @@ Three new interfaces are introduced as part of the API:
 - The `Printing` interface is a singleton that can be accessed as `navigator.printing`.
   - `Promise<sequence<Printers>> navigator.printing.getPrinters()` enumerates local printers and returns a list of `Printer` objects.
 - The `Printer` interface provides a way to interact with printers: retrieve their properties and capabilities, initiate print jobs, and monitor printer state changes.
-  - `Promise<void> updateAttributes()` implements the `Get-Printer-Attributes` IPP operation that updates `readonly attribute PrinterAttributes attributes` and returns a promise that is settled once the operation completes. The subset of supported printer attributes specified in section [5.4 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.4).
+  - `Promise<PrinterAttributes> fetchAttributes()` implements the `Get-Printer-Attributes` IPP operation and returns a promise that is settled once the operation completes. To reduce the number of printer connections, we offer an additional `PrinterAttributes cachedAttributes()` method within the `Printer` class that is initially populated from the OS cache and then gets updated every time `fetchAttributes()` is invoked.
   - `Promise<PrintJob> printJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
 - The `PrintJob` interface provides a way to interact with print jobs: monitor their state changes and cancel on demand.
   - `void cancel()` can be invoked to attempt to cancel a print job.
-  - `readonly attribute PrintJobAttributes attributes` (and dictionary fields like `job-state`, `job-state-message` and `job-state-reasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
+  - `PrintJobAttributes attributes()` (and dictionary fields like `job-state`, `job-state-message` and `job-state-reasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
 
 ## IPP Mapping
 
@@ -83,7 +86,7 @@ However, the implementation is allowed to only support a selected subset of valu
 ```cs
 [Exposed=Window, SecureContext]
 interface PrintJob {
-  readonly attribute PrintJobAttributes attributes;
+  PrintJobAttributes attributes();
 
   attribute EventHandler onjobstatehange;
 
@@ -92,9 +95,9 @@ interface PrintJob {
 
 [Exposed=Window, SecureContext]
 interface Printer {
-  readonly attribute PrinterAttributes attributes;
+  PrinterAttributes cachedAttributes();
 
-  Promise<void> updateAttributes();
+  Promise<PrinterAttributes> fetchAttributes();
 
   Promise<PrintJob> printJob(
     DOMString title,
@@ -313,9 +316,9 @@ typedef DOMString PrintingMedia;
 try {
   const printers = await navigator.printing.getPrinters();
   printers.forEach(printer => {
-    printer.updateAttributes().then(() => {
-      const attributes = printer.attributes;
-      console.log(`${attributes['printer-name']} has the following attributes: ${attributes}`);
+    printer.fetchAttributes().then(attributes => {
+      console.log(
+        `${attributes['printer-name']} has the following attributes: ${attributes}`);
     });
   });
 } catch (err) {
@@ -328,10 +331,10 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.attributes['printer-name']=== 'Brother QL-820NWB');
-  await printer.updateAttributes();
-  const attributes = printer.attributes;
-  console.log(`${attributes['printer-name']}'s new state is ${attributes['printer-state']}!`);
+    printer => printer.cachedAttributes()['printer-name'] === 'Brother QL-820NWB');
+  const attributes = await printer.updateAttributes();
+  console.log(
+    `${attributes['printer-name']}'s new state is ${attributes['printer-state']}!`);
 } catch (err) {
   console.warn("Printing operation failed: " + err);
 }
@@ -342,7 +345,7 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.attributes['printer-name'] === 'Brother QL-820NWB');
+    printer => printer.cachedAttributes()['printer-name'] === 'Brother QL-820NWB');
 
   const printJob = await printer.printJob("Sample Print Job", {
     data: new Blob(...),
@@ -363,7 +366,7 @@ try {
 
   const printJobComplete = new Promise((resolve, reject) => {
     printJob.onjobstatechange = () => {
-      const jobState = printJob.attributes['job-state'];
+      const jobState = printJob.attributes()['job-state'];
       if (IsErrorStatus(jobState)) {
         console.warn(`Job errored: ${jobState}`);
         reject(/**/);
@@ -388,7 +391,7 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.attributes['print-name'] === 'Brother QL-820NWB');
+    printer => printer.cachedAttributes()['print-name'] === 'Brother QL-820NWB');
 
   const printJob = await printer.printJob(...);
 
@@ -405,7 +408,7 @@ try {
 The scenarios described here refer to API access by websites in general and can be read as a justification for the recommendation of having it available only to [Isolated Web Apps](https://github.com/reillyeon/isolated-web-apps/blob/main/README.md). Note that despite this recommendation, this API is described independently from it.
 
 ### Fingerprinting
-The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `navigator.printing.getPrinters()` + `Printer.getPrinterAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
+The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `navigator.printing.getPrinters()` + `Printer.fetchAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
 * `printer-id`
 * `printer-name`
 * `printer-make-and-model`
@@ -427,7 +430,7 @@ A malicious website could use the `printJob()` method to create and send fake pr
 Submitting print jobs will require an explicit consent from the user similar to the print dialog shown during `window.print()`.
 
 ### DoS-ing the System
-A website might accidentally organize an unexpected DoS-attack by constantly calling `updateAttributes()` and overloading the network as a result - this is particularly important in the enterprise setting with hundreds of printers.
+A website might accidentally organize an unexpected DoS-attack by constantly calling `fetchAttributes()` and overloading the network as a result - this is particularly important in the enterprise setting with hundreds of printers.
 
 #### Mitigation
 Implementors should consider adding rate limiting to printer interactions.
@@ -485,4 +488,4 @@ While this approach can provide flexibility and ease of use in some cases, it ca
 * Erroneous calls reject early with a `TypeError` and offer developer-friendly error descriptions.
 
 ### onprinterstatechange EventHandler for Printer
-Similar to how the `PrintJob` objects provides a subscription for state change events, we could introduce an `onprinterstatechange` to allow tracking printer state changes, effectively utilizing the `Create-Printer-Subscription` IPP functionality. However, since the API is mostly centered around creating & tracking print jobs, we believe it would be sufficient for the developers to query the up-to-date printer state right before submitting a job; another alternative for the developer would be to set up regular calls to `updateAttributes()` via `setInterval()` for selected printers.
+Similar to how the `PrintJob` objects provides a subscription for state change events, we could introduce an `onprinterstatechange` to allow tracking printer state changes, effectively utilizing the `Create-Printer-Subscription` IPP functionality. However, since the API is mostly centered around creating & tracking print jobs, we believe it would be sufficient for the developers to query the up-to-date printer state right before submitting a job; another alternative for the developer would be to set up regular calls to `updateAttributes()` via `setInterval()` for selected printers. However, this assumption is not set in stone and might change in the future depending on the developer feedback.
