@@ -4,7 +4,7 @@
 
 The `navigator.printing` Web API is a proposed standard for enabling printer-related functionality in web applications. This API provides a set of JavaScript methods that allow developers to query local printers, submit print jobs, and manage print job options and status directly from web applications. To represent these concepts, it relies on the attribute names and semantics from the Internet Printing Protocol (IPP) specifications.
 
-Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents, sending print jobs from web applications to local printers has traditionally required various workarounds such as relying on third-party plugins or polyfilling via `window.print()`; the `navigator.printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
+Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents and send them to local printers via `window.print()`, customizing those documents jobs beyond what can be accomplished declaratively via CSS or specifying additional parameters like the number of copies or collation is currently not possible; the `navigator.printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
 
 The explainer outlines the motivating use cases for the API, its key features, and how it can benefit web developers and users alike.
 
@@ -21,14 +21,14 @@ To enable customization of settings, developers need to have knowledge about the
 * If the printer supports duplex printing, the application can prompt the user to print double-sided, saving paper and reducing printing time.
 * Access to supported media sizes empowers the application to generate print-ready files by adjusting page layouts, margins, or scaling, effectively ensuring that the content fits properly on the printed page without any cropping or distortion.
 
-### Observing the Printing Pipeline
-When users utilize `window.print()`, they have limited visibility and control over the printing process - usually it's scoped to hidden system UI surfaces & system notifications that cannot be accessed by the app. The API strives to fill this gap by offering the ability to track the progress of print jobs as well as cancel them if needed directly to the applications, creating a more evident and clear printing experience via custom information surfaces.
-
 ### Improving Error Handling
-Similarly to the previous point, there are no built-in error handling mechanisms -- this effectively leaves the user alone against the print system when someting goes wrong during printing. With more control over the printing process, apps can wrap up raw printing errors into more elaborate descriptions (what went wrong and why?) or suggest useful tips for troubleshooting common errors (potentially even going as far as providing links to vendor websites or user manuals for specific printers since model info is also available now).
+`window.print()` doesn't provide any built-in error handling mechanisms -- this effectively leaves the user alone against the print system when someting goes wrong during printing. With more control over the printing process, apps can wrap up raw printing errors into more elaborate descriptions (what went wrong and why?) or suggest useful tips for troubleshooting common errors (potentially even going as far as providing links to vendor websites or user manuals for specific printers since model info is also available now).
 
 ### Supporting Remote Printing
-The proposed API methods facilitate printer forwarding by enabling the remote client to access essential information about printers on the near side: this allows the remote client to interact with and control those printers as if they were directly connected to the remote client itself, enhancing the seamless integration and operation of printers in the remote environment.
+The proposed API methods unlock proper printer forwarding by allowing the remote client to access essential information about printers on the near side; without this information the remote system could run into various inconsistencies like generating documents formatted for A4 paper when the local printer uses US Letter-sized paper, which can barely be solved without tedious manual configuration.
+
+### Observing the Printing Pipeline
+When users utilize `window.print()`, they have limited visibility and control over the printing process - usually it's scoped to hidden system UI surfaces & system notifications that cannot be accessed by the app. The API strives to fill this gap by offering the ability to track the progress of print jobs as well as cancel them if needed directly to the applications, creating a more evident and clear printing experience via custom information surfaces.
 
 ## Key Features
 The API primarily focuses on listing local printers and their capabilities and sending print jobs to them.
