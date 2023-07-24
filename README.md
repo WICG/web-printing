@@ -8,31 +8,42 @@ Printing is a common and important task in many domains, including document mana
 
 The explainer outlines the motivating use cases for the API, its key features, and how it can benefit web developers and users alike.
 
-## Motivating Use Cases
-
-Although `window.print()` offers basic printing functionality through the browser's default print dialog, it is a relatively simple API. Developers' capabilities are restricted to selecting a file for printing and triggering the print dialog, which places the decision-making responsibility solely on the end user. While this is generally perceived as a right thing on the Web, users might benefit in a number of ways from shifting some of this control to the application developer.
+## Current State of Printing
+While `window.print()` offers basic printing functionality through the browser's default print dialog, it is a relatively simple API: developers' capabilities are restricted to selecting a file for printing, applying limited customization via CSS and triggering the print dialog. Some of the inconveniences that arise as a result are discussed in this section; it's important to note that some of them can be significantly improved even without adopting a different printing model.
 
 ### Streamlining Workflows
-First and foremost, this shift calls for a more streamlined and intuitive printing experience. Developers can design print workflows that automate repetitive tasks, preconfigure print settings with respect to a particular printer's capabilities, and eliminate unnecessary user interactions.
+First and foremost, repetitive printing tasks cannot be properly streamlined: there's no way to preconfigure a simple task like "print 10 double-sided copies of a document on letter paper" for daily use. These settings could be provided as optional parameters to `window.print()` and enhance the printing workflow.
 
 ### Knowing Your Printers
-To enable customization of settings, developers need to have knowledge about the capabilities of the printer. The API provides a convenient method for accessing this information, which enhances the printing experience by allowing developers to retrieve relevant details about what the printer can and cannot do. A few examples:
+To enable accurate customization of settings, developers need to have knowledge about the capabilities of the printer. The proposed API provides a convenient method for accessing this information, which enhances the printing experience by allowing developers to retrieve relevant details about what the printer can and cannot do and apply this knowledge appropriately. A few examples:
 * If the printer supports high-resolution printing, the application can automatically select the appropriate print resolution, resulting in sharper and more detailed output.
-* If the printer supports duplex printing, the application can prompt the user to print double-sided, saving paper and reducing printing time.
-* Access to supported media sizes empowers the application to generate print-ready files by adjusting page layouts, margins, or scaling, effectively ensuring that the content fits properly on the printed page without any cropping or distortion.
+* Access to supported media sizes empowers the application to generate print-ready files side by adjusting page layouts, margins, or scaling, effectively ensuring that the content fits properly on the printed page without any cropping or distortion.
 
-### Improving Error Handling
-`window.print()` doesn't provide any built-in error handling mechanisms -- this effectively leaves the user alone against the print system when someting goes wrong during printing. With more control over the printing process, apps can wrap up raw printing errors into more elaborate descriptions (what went wrong and why?) or suggest useful tips for troubleshooting common errors (potentially even going as far as providing links to vendor websites or user manuals for specific printers since model info is also available now).
+### Observing the Printing Pipeline & Improving Error Handling
+When using the `window.print()` function for web printing, the developers do not have any visibility into the printing process at all, whereas the users are limited to browser notifications and obscure system UI surfaces that are not always easy to discover. This can lead to a frustrating experience for users, for instance, if they encounter errors but do not receive any guidance on how to resolve them, or if the print job gets stuck in the queue for long.
 
-### Supporting Remote Printing
-The proposed API methods unlock proper printer forwarding by allowing the remote client to access essential information about printers on the near side; without this information the remote system could run into various inconsistencies like generating documents formatted for A4 paper when the local printer uses US Letter-sized paper, which can barely be solved without tedious manual configuration.
+While these problems could be somewhat softened by improving the existing notification system and making it easier for users to understand the progress of print jobs, allowing the applications to monitor them directly could also be beneficial for the users in a number of ways.
+* With more control over error handling, applications can wrap up raw printing errors into more elaborate descriptions (what went wrong and why?), suggest useful tips for troubleshooting common errors (potentially even going as far as providing links to vendor websites or user manuals for specific printers) or even prompt to print anew after the problem has been fixed.
+* Granting the application visibility into the progress of print jobs would allow the apps to present this information in a more graphical & convenient manner.
 
-### Observing the Printing Pipeline
-When users utilize `window.print()`, they have limited visibility and control over the printing process - usually it's scoped to hidden system UI surfaces & system notifications that cannot be accessed by the app. The API strives to fill this gap by offering the ability to track the progress of print jobs as well as cancel them if needed directly to the applications, creating a more evident and clear printing experience via custom information surfaces.
+## Main Motivating Use Case: Remote Printing
+The incremental improvements to the existing printing stack discussed in the previous sections do not address the crucial case of remote printing which has specific requirements that do not fit into the general web document-based model.
+
+* Remote Rendering
+
+  In many cases the document being printed is rendered entirely on the remote system; the implication is that the local system receives a finalized media (such as a PDF document) which must be printed as-is rather than a raw version of the document in HTML that can be tailored by the means of the browser to the final print media available locally using `@media print`. With the existing printing stack, the best-effort approach for a remote app would be to ask the user to provide a generic description of their printers' capabilities, but it would lead to a significantly worse user experience than letting the remote application do what it usually does with the appropriate knowledge of the capabilities of local printers -- this is where the proposed API steps in.
+
+* Customizing the Remote Print Job
+
+  The remote print job might come with additional parameters such as copies and duplex settings when configured by the user when printing via a virtual printer which should be honored by the local system with a user confirmation -- there's no way to forward this information to the local printing system other than prompt the user to select the necessary settings in the print dialog box. One option would be to ehnance `window.print()` by providing optional parameters to pre-populate values in the local print dialog as suggested earlier in the explainer; an alternative solution would be to declare a virtual printer that doesn't support any settings and force all of such decisions to be made through the local print dialog which might be a bit more concise. Either approach results in a tedious two-stage printing process involving way more user interactions that necessary.
+
+The proposed API methods unlock proper printer forwarding by allowing the remote client to access essential information about printers on the near side, eliminating the need for tedious manual configurations and excessive user interactions and significantly improving the remote printing experience.
+
+## Further Use Cases
+The remote printing case is the core driving force of this proposal; however, we acknowledge that there might be other use cases which also require this architectural shift -- all ideas and suggestions are welcome!
 
 ## Key Features
 The API primarily focuses on listing local printers and their capabilities and sending print jobs to them.
-Support for other IPP capabilities as well as exhaustive enumeration of all possible attributes is out of the scope of this proposal.
 
 Three new interfaces are introduced as part of the API:
 - The `Printing` interface is a singleton that can be accessed as `navigator.printing`.
@@ -46,7 +57,7 @@ Three new interfaces are introduced as part of the API:
 
 ## IPP Mapping
 
-Attribute names/values in the proposed API are modelled with respect to the existing IPP names as specified in [Internet Printing Protocol (IPP) Registrations](https://www.iana.org/assignments/ipp-registrations/ipp-registrations.xhtml).
+Attribute names/values in the proposed API are modelled with respect to the existing IPP names as specified in [Internet Printing Protocol (IPP) Registrations](https://www.iana.org/assignments/ipp-registrations/ipp-registrations.xhtml). This choice is primarily dictated by the remote printing use case, since the remote system is more likely to be familiar with the IPP abstractions rather than higher-level CSS abstractions, which in turn reduces the number of intermediate translation steps by the components involved.
 
 The following table specifies WebIDL type mapping for selected types listed in section [5.1 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.1).
 
@@ -158,6 +169,7 @@ dictionary PrintingDocumentDescription {
 dictionary PrintJobTemplateAttributes {
   unsigned long copies;
   PrintingMedia media;
+  PrintingMediaCol media-col;
   PrintingMultipleDocumentHandling multiple-document-handling;
   PrintingOrientation orientation-requested;
   sequence<PrintingRange> page-ranges;
@@ -204,8 +216,6 @@ dictionary PrinterAttributes {
   boolean page-ranges-supported;
 
   DOMString printer-id;
-  DOMString printer-info;
-  DOMString printer-location;
   DOMString printer-name;
   DOMString printer-make-and-model;
 
@@ -293,7 +303,12 @@ enum PrintingSides {
 };
 
 enum PrintJobState {
-  // ...
+  "preparing",
+  "pending",
+  "processing",
+  "canceled",
+  "aborted",
+  "completed",
 };
 
 enum PrinterState {
@@ -412,8 +427,6 @@ The detailed information about the available local printers provide an [active f
 * `printer-id`
 * `printer-name`
 * `printer-make-and-model`
-* `printer-info`
-* `printer-location`
 
 It's worth noting that printers are usually default-configured in private spaces and hence don't provide too much insight; however, the situation is often different in corporate environments where printers are often customly tailored by admins; thus any deviation from standard settings for a particular model might potentially give away a corporate user. Moreover, the same logic applies to printer tiers: the presence of an expensive enterprise-scale printer (as opposed to a common customer model) allows the website to accurately determine a business user.
 
@@ -489,3 +502,7 @@ While this approach can provide flexibility and ease of use in some cases, it ca
 
 ### onprinterstatechange EventHandler for Printer
 Similar to how the `PrintJob` objects provides a subscription for state change events, we could introduce an `onprinterstatechange` to allow tracking printer state changes, effectively utilizing the `Create-Printer-Subscription` IPP functionality. However, since the API is mostly centered around creating & tracking print jobs, we believe it would be sufficient for the developers to query the up-to-date printer state right before submitting a job; another alternative for the developer would be to set up regular calls to `updateAttributes()` via `setInterval()` for selected printers. However, this assumption is not set in stone and might change in the future depending on the developer feedback.
+
+### `attributes` as interface member for Printer and PrintJob
+It was originally planned to introduce `attributes` as an interface member to both `Printer` and `PrintJob` in a uniform fashion instead of wrapping them into getter functions; unfortunately, it's not possible to make a dictionary
+an interface member in WebIDL.
