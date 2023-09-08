@@ -430,7 +430,7 @@ A more intricate fingerprinting approach is to constantly track `printer-state`/
 
 #### Mitigation
 A basic precaution is to introduce a new permissions-policy called `"printing"` to `navigator.printing.getPrinters()`  to facilitate protection against malicious third-party iframes.
-A more sophisticated approach would include creating a permissions surface resembling those for existing Web APIs like `serial` and `hid` and prompting the user to select the printers that a particular origin is allowed to access with an option to revoke them on demand.
+A more sophisticated approach would include creating a permissions surface resembling those for existing Web APIs like `serial` and `hid`: this is discussed in greater detail in the [Permissions UX](#permissions-ux) section.
 
 ### Forging Printer Jobs
 A malicious website could use the `printJob()` method to create and send fake printer jobs to the user's printer, causing it to waste paper and ink or potentially print malicious content; this could even potentially happen with a legitimate website due an inaccuracy in client-side printer handling.
@@ -443,6 +443,38 @@ A website might accidentally organize an unexpected DoS-attack by constantly cal
 
 #### Mitigation
 Implementors should consider adding rate limiting to printer interactions.
+
+## Permissions UX
+Due to the privacy concerns associated with [fingerprinting](#fingerprinting), we need a new way for users to control how their printers are tracked and accessed; this calls for a new Permissions UX for the Printing API.
+
+### Existing Permissions Flow
+The existing web flow doesn't allow web sites to access printers directly -- instead the only prompt that the user gets is shown directly during the printing stage, allowing them to select a printer and customize the options on a one-off basis.
+
+### Suggested Options
+There are two main flows to be considered given that the API is also offering direct access to printers in addition to the ability to submit print jobs.
+
+* Flow A: Grant Access to all Printers
+  1. Prompt the user to grant permission to access all local printer information
+  2. Site constructs a print job based on the capabilities of a printer it chooses
+  3. Prompt the user when the job is submitted so that they can confirm selected printer and job options.
+
+Flow A is analogous to permissions for microphone and camera devices, in which a single grant provides the website with information about all connected hardware, allowing it to select which device to use. However, unlike microphones and cameras, there may be multiple printers connected to a user's device, which presents a greater surface area for fingerprinting in enterprise environments. With that in mind, a more intricate Flow B is put forward:
+
+
+* Flow B: Grant Access on a per-Printer Basis
+  1. Prompt the user to select local printer(s) to share with the site
+  2. Site constructs a print job based on the capabilities of a printer it chooses (among the ones that were selected by the user)
+  3. Prompt the user again when a job is submitted to confirm selected options.
+
+Flow B is more attractive due to its privacy-preserving nature: similar to other device APIs it exposes the least information possible about the user’s device configuration. The per-job prompt from bullet 3 can be additionally equipped with an option to "Do not show this confirmation again" if they trust a particular web site similar to how the "Multiple Downloads" option is designed.
+
+### Enterprise Considerations
+In all flows, enterprise policy may automatically grant or deny the prompts. Additionally, Flow B should respect enterprise settings to expose information about all available printers for selected origins.
+
+### VDI Considerations
+In virtual desktop infrastructure (VDI) scenarios involving printing, users may be presented with two separate printing dialogs: one for the remote host and one for the local device. The user experience (UX) should therefore consider the following:
+* Differentiating the two dialogs sufficiently to make it clear that the local dialog is solely a confirmation dialog, rather than a prompt to select the same settings again.
+* Preventing potential confusion related to clicking "Do not show this confirmation again" and clarifying that this setting only applies to the local dialog.
 
 ## Considered Alternatives
 
