@@ -416,8 +416,6 @@ try {
 
 ## Security & Privacy Considerations
 
-The scenarios described here refer to API access by websites in general and can be read as a justification for the recommendation of having it available only to [Isolated Web Apps](https://github.com/reillyeon/isolated-web-apps/blob/main/README.md). Note that despite this recommendation, this API is described independently from it.
-
 ### Fingerprinting
 The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `navigator.printing.getPrinters()` + `Printer.fetchAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
 * `printer-id`
