@@ -49,7 +49,7 @@ Three new interfaces are introduced as part of the API:
   - `Promise<PrintJob> printJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
 - The `PrintJob` interface provides a way to interact with print jobs: monitor their state changes and cancel on demand.
   - `void cancel()` can be invoked to attempt to cancel a print job.
-  - `PrintJobAttributes attributes()` (and dictionary fields like `job-state`, `job-state-message` and `job-state-reasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
+  - `PrintJobAttributes attributes()` (and dictionary fields like `jobState`, `jobStateMessage` and `jobStateReasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
 
 ## IPP Mapping
 
@@ -70,19 +70,25 @@ The following table specifies WebIDL type mapping for selected types listed in s
 | `1setOfX` | `sequence<X>` |
 | `rangeOfInteger` | `dictionary { unsigned long from, unsigned long to };` |
 | `octetString` | `DOMString` |
-| `resolution` | `dictionary {`<br>`unsigned long cross-feed-direction-resolution,`<br>`unsigned long feed-direction-resolution,`<br> `PrintingResolutionUnits units`<br>`};` |
+| `resolution` | `dictionary {`<br>`unsigned long crossFeedDirectionResolution,`<br>`unsigned long feedDirectionResolution,`<br> `PrintingResolutionUnits units`<br>`};` |
 | `collection` | `dictionary { ... }` |
 
-Attribute names retain their hyphen-case notation as `dictionary` members.
+Attribute names in collections are mapped to `dictionary` members as follows:
+* Take the attribute name as base term;
+* Translate kebab-case into lower camelCase.
+
+A few examples:
+* `cross-feed-direction-resolution` becomes `crossFeedDirectionResolution` in WebIDL.
+* `print-color-mode` becomes `printColorMode` in WebIDL.
 
 Names for `enum` classes are inferred as follows:
 * Take the attribute name as base term;
-* Translate kebab-case into CamelCase;
+* Translate kebab-case into upper CamelCase;
 * If the term doesn't already start with `Print` or `Printing`, prepend `Printing`;
 * Declare an enum with the derived term as name.
 
 A few examples:
-* `media-source` is backed by `enum PrintingMediaSource`;
+* `media-source` is backed by `enum PrintingMediaSource`.
 * `print-color-mode` is backed by `enum PrintColorMode`.
 
 Enum values are supposed to be translated from IPP to WebIDL without any additional changes.
@@ -132,14 +138,14 @@ partial interface Navigator {
 
 ```cs
 dictionary PrintingMediaSize {
-  unsigned long x-dimension;
-  unsigned long y-dimension;
+  unsigned long xDimension;
+  unsigned long yDimension;
 };
 
 dictionary PrintingMediaCol {
-  PrintingMediaSize media-size;
-  DOMString media-size-name;
-  PrintingMediaSource media-source;
+  PrintingMediaSize mediaSize;
+  DOMString mediaSizeName;
+  PrintingMediaSource mediaSource;
 };
 
 dictionary RangeOfInteger {
@@ -148,14 +154,14 @@ dictionary RangeOfInteger {
 };
 
 dictionary PrintingResolution {
-  unsigned long cross-feed-direction-resolution;
-  unsigned long feed-direction-resolution;
+  unsigned long crossFeedDirectionResolution;
+  unsigned long feedDirectionResolution;
   PrintingResolutionUnits units;
 };
 
 dictionary PrintingDocumentDescription {
   required Blob data;
-  PrintingMimeMediaType document-format;
+  PrintingMimeMediaType documentFormat;
 };
 ```
 
@@ -165,73 +171,73 @@ dictionary PrintingDocumentDescription {
 dictionary PrintJobTemplateAttributes {
   unsigned long copies;
   PrintingMedia media;
-  PrintingMediaCol media-col;
-  PrintingMultipleDocumentHandling multiple-document-handling;
-  PrintingOrientation orientation-requested;
-  sequence<PrintingRange> page-ranges;
-  PrintingResolution printer-resolution;
-  PrintColorMode print-color-mode;
-  PrintQuality print-quality;
+  PrintingMediaCol mediaCol;
+  PrintingMultipleDocumentHandling multipleDocumentHandling;
+  PrintingOrientation orientationRequested;
+  sequence<PrintingRange> pageRanges;
+  PrintingResolution printerResolution;
+  PrintColorMode printColorMode;
+  PrintQuality printQuality;
   PrintingSides sides;
 };
 
 dictionary PrintJobAttributes {
-  DOMString job-id;
-  DOMString job-name;
+  DOMString jobId;
+  DOMString jobName;
 
-  DOMString printer-id;
-  DOMString printer-name;
+  DOMString printerId;
+  DOMString printerName;
 
-  PrintJobState job-state;
-  DOMString job-state-message;
-  sequence<PrintJobStateReason> job-state-reasons;
+  PrintJobState jobState;
+  DOMString jobStateMessage;
+  sequence<PrintJobStateReason> jobStateReasons;
 };
 
 dictionary PrinterAttributes {
-  unsigned short copies-default;
-  PrintingRange copies-supported;
+  unsigned short copiesDefault;
+  PrintingRange copiesSupported;
 
-  PrintingMimeMediaType document-format-default;
-  sequence<PrintingMimeMediaType> document-format-supported;
+  PrintingMimeMediaType documentFormatDefault;
+  sequence<PrintingMimeMediaType> documentFormatSupported;
 
-  sequence<PrintingJobCreationAttribute> job-creation-attributes-supported;
+  sequence<PrintingJobCreationAttribute> jobCreationAttributesSupported;
 
-  PrintingMedia media-default;
-  sequence<PrintingMedia> media-ready;
-  sequence<PrintingMedia> media-supported;
+  PrintingMedia mediaDefault;
+  sequence<PrintingMedia> mediaReady;
+  sequence<PrintingMedia> mediaSupported;
 
-  sequence<PrintingMediaCol> media-col-ready;
-  sequence<PrintingMediaColAttribute> media-col-supported;
+  sequence<PrintingMediaCol> mediaColReady;
+  sequence<PrintingMediaColAttribute> mediaColSupported;
 
-  PrintingMultipleDocumentHandling multiple-document-handling-default;
-  sequence<PrintingMultipleDocumentHandling> multiple-document-handling-supported;
+  PrintingMultipleDocumentHandling multipleDocumentHandlingDefault;
+  sequence<PrintingMultipleDocumentHandling> multipleDocumentHandlingSupported;
 
-  PrintingOrientation orientation-requested-default;
-  sequence<PrintingOrientation> orientation-requested-supported;
+  PrintingOrientation orientationRequestedDefault;
+  sequence<PrintingOrientation> orientationRequestedSupported;
 
-  boolean page-ranges-supported;
+  boolean pageRangesSupported;
 
-  DOMString printer-id;
-  DOMString printer-name;
-  DOMString printer-make-and-model;
+  DOMString printerId;
+  DOMString printerName;
+  DOMString printerMakeAndModel;
 
-  boolean printer-is-default;
+  boolean printerIsDefault;
 
-  PrinterState printer-state;
-  DOMString printer-state-message;
-  sequence<PrinterStateReason> printer-state-reasons;
+  PrinterState printerState;
+  DOMString printerStateMessage;
+  sequence<PrinterStateReason> printerStateReasons;
 
-  PrintingResolution printer-resolution-default;
-  sequence<PrintingResolution> printer-resolution-supported;
+  PrintingResolution printerResolutionDefault;
+  sequence<PrintingResolution> printerResolutionSupported;
 
-  PrintColorMode print-color-mode-default;
-  sequence<PrintColorMode> print-color-mode-supported;
+  PrintColorMode printColorModeDefault;
+  sequence<PrintColorMode> printColorModeSupported;
 
-  PrintQuality print-quality-default;
-  sequence<PrintQuality> print-quality-supported;
+  PrintQuality printQualityDefault;
+  sequence<PrintQuality> printQualitySupported;
 
-  PrintingSides sides-default;
-  sequence<PrintingSides> sides-supported;
+  PrintingSides sidesDefault;
+  sequence<PrintingSides> sidesSupported;
 };
 ```
 
@@ -329,7 +335,7 @@ try {
   printers.forEach(printer => {
     printer.fetchAttributes().then(attributes => {
       console.log(
-        `${attributes['printer-name']} has the following attributes: ${attributes}`);
+        `${attributes.printerName} has the following attributes: ${attributes}`);
     });
   });
 } catch (err) {
@@ -342,10 +348,10 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.cachedAttributes()['printer-name'] === 'Brother QL-820NWB');
+    printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
   const attributes = await printer.updateAttributes();
   console.log(
-    `${attributes['printer-name']}'s new state is ${attributes['printer-state']}!`);
+    `${attributes.printerName}'s new state is ${attributes.printerState}!`);
 } catch (err) {
   console.warn("Printing operation failed: " + err);
 }
@@ -356,28 +362,28 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.cachedAttributes()['printer-name'] === 'Brother QL-820NWB');
+    printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
   const printJob = await printer.printJob("Sample Print Job", {
     data: new Blob(...),
-    'document-format': 'application/pdf',
+    documentFormat: 'application/pdf',
   }, {
     copies: 2,
     media: 'iso_a4_210x297mm',
-    'multiple-document-handling': 'separate-documents-collated-copies',
-    'printer-resolution': {
-      'cross-feed-direction-resolution': 300,
-      'feed-direction-resolution': 400,
+    multipleDocumentHandling: 'separate-documents-collated-copies',
+    printerResolution: {
+      crossFeedDirectionResolution: 300,
+      feedDirectionResolution: 400,
       units: '3' // dots per inch
     },
     sides: 'one-sided',
-    'print-quality': '5' // best quality
-    'page-ranges': [{from: 1, to: 5}, {from: 7, to: 10}],
+    printQuality: '5' // best quality
+    pageRanges: [{from: 1, to: 5}, {from: 7, to: 10}],
   });
 
   const printJobComplete = new Promise((resolve, reject) => {
     printJob.onjobstatechange = () => {
-      const jobState = printJob.attributes()['job-state'];
+      const jobState = printJob.attributes().jobState;
       if (IsErrorStatus(jobState)) {
         console.warn(`Job errored: ${jobState}`);
         reject(/**/);
@@ -402,7 +408,7 @@ try {
 try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
-    printer => printer.cachedAttributes()['print-name'] === 'Brother QL-820NWB');
+    printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
   const printJob = await printer.printJob(...);
 
@@ -418,13 +424,13 @@ try {
 
 ### Fingerprinting
 The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `navigator.printing.getPrinters()` + `Printer.fetchAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
-* `printer-id`
-* `printer-name`
-* `printer-make-and-model`
+* `printerId`
+* `printerName`
+* `printerMakeAndModel`
 
 It's worth noting that printers are usually default-configured in private spaces and hence don't provide too much insight; however, the situation is often different in corporate environments where printers are often customly tailored by admins; thus any deviation from standard settings for a particular model might potentially give away a corporate user. Moreover, the same logic applies to printer tiers: the presence of an expensive enterprise-scale printer (as opposed to a common customer model) allows the website to accurately determine a business user.
 
-A more intricate fingerprinting approach is to constantly track `printer-state`/`printer-state-message` fields for a specific printer; by observing the patterns in printer state changes (i.e. how often it goes from `busy` to `idle` and vice versa) a macilious website could reveal sensitive information about the user's printing behavior. This information could be used to build a profile of the user or to track their activities across multiple sites.
+A more intricate fingerprinting approach is to constantly track `printerState`/`printerStateMessage` fields for a specific printer; by observing the patterns in printer state changes (i.e. how often it goes from `busy` to `idle` and vice versa) a macilious website could reveal sensitive information about the user's printing behavior. This information could be used to build a profile of the user or to track their activities across multiple sites.
 
 #### Mitigation
 A basic precaution is to introduce a new permissions-policy called `"printing"` to `navigator.printing.getPrinters()`  to facilitate protection against malicious third-party iframes.
