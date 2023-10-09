@@ -349,7 +349,7 @@ try {
   const printers = await navigator.printing.getPrinters();
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
-  const attributes = await printer.updateAttributes();
+  const attributes = await printer.fetchAttributes();
   console.log(
     `${attributes.printerName}'s new state is ${attributes.printerState}!`);
 } catch (err) {
@@ -518,7 +518,7 @@ The most popular NodeJS implementation of IPP ([ipp](https://www.npmjs.com/packa
 interface Printer {
   readonly attribute object attributes;
 
-  Promise<void> updateAttributes();
+  Promise<void> fetchAttributes();
 
   Promise<PrintJob> printJob(
     DOMString title,
@@ -533,7 +533,7 @@ While this approach can provide flexibility and ease of use in some cases, it ca
 * Erroneous calls reject early with a `TypeError` and offer developer-friendly error descriptions.
 
 ### onprinterstatechange EventHandler for Printer
-Similar to how the `PrintJob` objects provides a subscription for state change events, we could introduce an `onprinterstatechange` to allow tracking printer state changes, effectively utilizing the `Create-Printer-Subscription` IPP functionality. However, since the API is mostly centered around creating & tracking print jobs, we believe it would be sufficient for the developers to query the up-to-date printer state right before submitting a job; another alternative for the developer would be to set up regular calls to `updateAttributes()` via `setInterval()` for selected printers. However, this assumption is not set in stone and might change in the future depending on the developer feedback.
+Similar to how the `PrintJob` objects provides a subscription for state change events, we could introduce an `onprinterstatechange` to allow tracking printer state changes, effectively utilizing the `Create-Printer-Subscription` IPP functionality. However, since the API is mostly centered around creating & tracking print jobs, we believe it would be sufficient for the developers to query the up-to-date printer state right before submitting a job; another alternative for the developer would be to set up regular calls to `fetchAttributes()` via `setInterval()` for selected printers. However, this assumption is not set in stone and might change in the future depending on the developer feedback.
 
 ### `attributes` as interface member for Printer and PrintJob
 It was originally planned to introduce `attributes` as an interface member to both `Printer` and `PrintJob` in a uniform fashion instead of wrapping them into getter functions; unfortunately, it's not possible to make a dictionary
