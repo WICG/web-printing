@@ -258,7 +258,14 @@ enum PrintingMultipleDocumentHandling {
 enum PrintColorMode {
   "monochrome",
   "color",
+  // ...
 };
+
+enum PrintQuality {
+  "draft",
+  "normal",
+  "high",
+}
 
 enum PrintingMediaColSupported {
   "media-size",
@@ -287,15 +294,15 @@ enum PrintingMediaSource {
 };
 
 enum PrintingPageOrientation {
-  "3",
-  "4",
-  "5",
-  "6",
+  "portrait",
+  "landscape",
+  "reverse-landscape",
+  "reverse-portrait",
 };
 
 enum PrintingResolutionUnits {
-  "3",
-  "4",
+  "dots-per-inch",
+  "dots-per-centimeter",
 };
 
 enum PrintingSides {
@@ -328,15 +335,30 @@ typedef DOMString PrintingMedia;
 
 ## Usage Examples
 
-### Listing Printers
+### Listing Printers & Basic Attributes
 ```js
 try {
   const printers = await navigator.printing.getPrinters();
-  printers.forEach(printer => {
-    printer.fetchAttributes().then(attributes => {
+  for (const printer of printers) {
+    const attributes = printer.cachedAttributes();
+    console.log(
+      `${attributes.printerName} has the following (basic) attributes: ${attributes}`);
+  }
+} catch (err) {
+  console.warn("Printing operation failed: " + err);
+}
+```
+
+### Listing Printers & Detailed Attributes
+```js
+try {
+  const printers = await navigator.printing.getPrinters();
+  const promises = printers.map(printer => printer.fetchAttributes());
+  Promise.all(promises).then((values) => {
+    for (const attributes of values) {
       console.log(
-        `${attributes.printerName} has the following attributes: ${attributes}`);
-    });
+        `${attributes.printerName} has the following (detailed) attributes: ${attributes}`);
+    }
   });
 } catch (err) {
   console.warn("Printing operation failed: " + err);
@@ -374,10 +396,10 @@ try {
     printerResolution: {
       crossFeedDirectionResolution: 300,
       feedDirectionResolution: 400,
-      units: '3' // dots per inch
+      units: 'dots-per-inch'
     },
     sides: 'one-sided',
-    printQuality: '5' // best quality
+    printQuality: 'high',
     pageRanges: [{from: 1, to: 5}, {from: 7, to: 10}],
   });
 
