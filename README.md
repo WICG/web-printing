@@ -25,15 +25,25 @@ When using the `window.print()` function for web printing, the developers do not
 ## Main Motivating Use Case: Remote Printing
 The incremental improvements to the existing printing stack discussed in the previous sections do not address the crucial case of remote printing in remote/virtual desktop systems which has specific requirements that do not fit into the general web document-based model.
 
-* Remote Rendering
+### Concepts & Definitions
+* Remote system (also remote side/far side) is the desktop the user is connected to via the remote/virtual desktop system; it's assumed to be situated in a different location and not have access to local printers.
+* Local system (also local side/near side) is the actual user's device which acts as a thin client/proxy to the remote system; it's assumed to be able to access local printers on the network.
 
-  In the remote/virtual desktop setting the document being printed is rendered entirely on the remote system; the implication is that the local system receives a finalized media (such as a PDF document) which must be printed as-is rather than a raw version of the document in HTML that can be tailored by the means of the browser to the final print media available locally using `@media print`. With the existing printing stack, the best-effort approach for a remote app would be to ask the user to provide a generic description of their printers' capabilities, but it would lead to a significantly worse user experience than letting the remote application do what it usually does with the appropriate knowledge of the capabilities of local printers -- this is where the proposed API steps in.
+### Challenges
+Remote desktop environments (e.g. Citrix / Chrome Remote Desktop / etc) often need to print documents in the user's local environment. These documents usually come from various third-party apps (think of Microsoft Office, for instance), and the printing mechanism looks approximately as follows:
+* The remote desktop environment installs a virtual printer on the remote side that shows up in the list of available printers;
+* When the user clicks on "Print" from within the app and selects this virtual printer, the current document gets rendered into a file format suitable for printing with respect to the selected settings and forwarded to the local side;
+* The remote desktop environment on the local side proceeds to initiate a real print job using the received document.
 
-* Customizing the Remote Print Job
+This process only allows a fully rendered document (e.g. pdf) to be transferred from the remote environment to the local one that must be printed as-is rather than a raw version of the document in HTML that can be tailored by the means of the browser to the final print media available locally using `@media print`; the natural conclusion is that knowing the printer capabilities beforehand is crucial to ensure correctness of the rendering itself.
 
-  The remote print job might come with additional parameters such as copies and duplex settings when configured by the user when printing via a virtual printer which should be honored by the local system with a user confirmation -- there's no way to forward this information to the local printing system other than prompt the user to select the necessary settings in the print dialog box. One option would be to ehnance `window.print()` by providing optional parameters to pre-populate values in the local print dialog as suggested earlier in the explainer; an alternative solution would be to declare a virtual printer that doesn't support any settings and force all of such decisions to be made through the local print dialog which might be a bit more concise. Either approach results in a tedious two-stage printing process involving way more user interactions that necessary.
+With the existing printing stack, the best-effort approach for a remote app to approximate the printer capabilities would be to ask the user to provide a generic description of their printer and take it from there, yet it would lead to a significantly worse user experience than letting the remote application do what it usually does with the appropriate knowledge of the capabilities of local printers -- this is where the proposed API steps in.
 
-The proposed API methods unlock proper printer forwarding by allowing the remote client to access essential information about printers on the near side, eliminating the need for tedious manual configurations and excessive user interactions and significantly improving the remote printing experience.
+Another challenge is transferring the print settings that users select. In line with the reasoning above, additional parameters essential for layout such as paper or color support must be configured before rendering takes place; however, there's no way to make the local print system honor these settings in the existing print stack other than prompt the user to select the necessary settings in the print dialog box. An alternative would be to enhance `window.print()` by providing optional parameters to pre-populate values in the local print dialog as suggested earlier in the explainer.
+
+As for the resulting duplication of print dialogs (one on the remote side for selecting the settings and another on the local side for confirming the print job), one of the solutions explored is to grant specific origins permission to print silently to a particular printer (with a provided option for the user to revoke their consent); please refer to the [Permissions UX](#permissions-ux) section for more details.
+
+All in all, the proposed API methods unlock proper printer forwarding by allowing the remote client to access essential information about printers on the local side, eliminating the need for tedious manual configurations and excessive user interactions and significantly improving the remote printing experience.
 
 ## Further Use Cases
 The remote printing case is the core driving force of this proposal; however, we acknowledge that there might be other use cases which also require this architectural shift -- all ideas and suggestions are welcome!
