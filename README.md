@@ -56,7 +56,7 @@ Three new interfaces are introduced as part of the API:
   - `Promise<sequence<Printers>> navigator.printing.getPrinters()` enumerates local printers and returns a list of `Printer` objects.
 - The `Printer` interface provides a way to interact with printers: retrieve their properties and capabilities, initiate print jobs, and monitor printer state changes.
   - `Promise<PrinterAttributes> fetchAttributes()` implements the `Get-Printer-Attributes` IPP operation and returns a promise that is settled once the operation completes. To reduce the number of printer connections, we offer an additional `PrinterAttributes cachedAttributes()` method within the `Printer` class that is initially populated from the OS cache and then gets updated every time `fetchAttributes()` is invoked.
-  - `Promise<PrintJob> printJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
+  - `Promise<PrintJob> submitPrintJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
 - The `PrintJob` interface provides a way to interact with print jobs: monitor their state changes and cancel on demand.
   - `void cancel()` can be invoked to attempt to cancel a print job.
   - `PrintJobAttributes attributes()` (and dictionary fields like `jobState`, `jobStateMessage` and `jobStateReasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
@@ -122,7 +122,7 @@ interface Printer {
 
   Promise<PrinterAttributes> fetchAttributes();
 
-  Promise<PrintJob> printJob(
+  Promise<PrintJob> submitPrintJob(
     DOMString title,
     PrintingDocumentDescription document,
     optional PrintJobTemplateAttributes options = {});
@@ -396,7 +396,7 @@ try {
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
-  const printJob = await printer.printJob("Sample Print Job", {
+  const printJob = await printer.submitPrintJob("Sample Print Job", {
     data: new Blob(...),
     documentFormat: 'application/pdf',
   }, {
@@ -442,7 +442,7 @@ try {
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
-  const printJob = await printer.printJob(...);
+  const printJob = await printer.submitPrintJob(...);
 
   // This might take no effect if the job has already finished.
   printJob.cancel();
@@ -469,7 +469,7 @@ A basic precaution is to introduce a new permissions-policy called `"printing"` 
 A more sophisticated approach would include creating a permissions surface resembling those for existing Web APIs like `serial` and `hid`: this is discussed in greater detail in the [Permissions UX](#permissions-ux) section.
 
 ### Forging Printer Jobs
-A malicious website could use the `printJob()` method to create and send fake printer jobs to the user's printer, causing it to waste paper and ink or potentially print malicious content; this could even potentially happen with a legitimate website due an inaccuracy in client-side printer handling.
+A malicious website could use the `submitPrintJob()` method to create and send fake printer jobs to the user's printer, causing it to waste paper and ink or potentially print malicious content; this could even potentially happen with a legitimate website due an inaccuracy in client-side printer handling.
 
 #### Mitigation
 Submitting print jobs will require an explicit consent from the user similar to the print dialog shown during `window.print()`.
@@ -532,7 +532,7 @@ interface Printing {
 
   Promise<PrinterAttributes> getPrinterAttributes(PrinterHandle);
 
-  Promise<PrintJobHandle> printJob(
+  Promise<PrintJobHandle> submitPrintJob(
     PrinterHandle,
     DocumentDescription,
     optional PrintJobTemplateAttributes = {});
@@ -552,7 +552,7 @@ interface Printer {
 
   Promise<void> fetchAttributes();
 
-  Promise<PrintJob> printJob(
+  Promise<PrintJob> submitPrintJob(
     DOMString title,
     DocumentDescription document,
     optional object options = {});
