@@ -2,9 +2,9 @@
 
 ## Introduction
 
-The `navigator.printing` Web API is a proposed standard for enabling deeper integration with printer-related functionality in web applications. This API provides a set of JavaScript methods that allow developers to query local printers, submit print jobs, and manage print job options and status directly from web applications. To represent these concepts, it relies on the attribute names and semantics from the Internet Printing Protocol (IPP) specifications.
+The `printing` Web API is a proposed standard for enabling deeper integration with printer-related functionality in web applications. This API provides a set of JavaScript methods that allow developers to query local printers, submit print jobs, and manage print job options and status directly from web applications. To represent these concepts, it relies on the attribute names and semantics from the Internet Printing Protocol (IPP) specifications.
 
-Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents and send them to local printers via `window.print()`, customizing those documents jobs beyond what can be accomplished declaratively via CSS or specifying additional parameters like the number of copies or collation is currently not possible; the `navigator.printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
+Printing is a common and important task in many domains, including document management, label printing, receipt printing, and more. While web applications can generate printable content such as PDFs, images, and text documents and send them to local printers via `window.print()`, customizing those documents jobs beyond what can be accomplished declaratively via CSS or specifying additional parameters like the number of copies or collation is currently not possible; the `printing` API aims to provide a standardized and seamless way for web applications to directly interact with printers, enabling developers to build printer-related features within their web applications.
 
 The explainer outlines the motivating use cases for the API, its key features, and how it can benefit web developers and users alike.
 
@@ -52,8 +52,8 @@ The remote printing case is the core driving force of this proposal; however, we
 The API primarily focuses on listing local printers and their capabilities and sending print jobs to them.
 
 Three new interfaces are introduced as part of the API:
-- The `Printing` interface is a singleton that can be accessed as `navigator.printing`.
-  - `Promise<sequence<Printers>> navigator.printing.getPrinters()` enumerates local printers and returns a list of `Printer` objects.
+- The `Printing` interface is a singleton that can be accessed as `printing`.
+  - `Promise<sequence<Printers>> printing.getPrinters()` enumerates local printers and returns a list of `Printer` objects.
 - The `Printer` interface provides a way to interact with printers: retrieve their properties and capabilities, initiate print jobs, and monitor printer state changes.
   - `Promise<PrinterAttributes> fetchAttributes()` implements the `Get-Printer-Attributes` IPP operation and returns a promise that is settled once the operation completes. To reduce the number of printer connections, we offer an additional `PrinterAttributes cachedAttributes()` method within the `Printer` class that is initially populated from the OS cache and then gets updated every time `fetchAttributes()` is invoked.
   - `Promise<PrintJob> submitPrintJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
@@ -134,7 +134,7 @@ interface Printing {
 };
 
 [Exposed=Window, SecureContext]
-partial interface Navigator {
+partial interface mixin WindowOrWorkerGlobalScope {
   [SameObject] readonly attribute Printing printing;
 };
 ```
@@ -348,7 +348,7 @@ typedef DOMString PrintingMedia;
 ### Listing Printers & Basic Attributes
 ```js
 try {
-  const printers = await navigator.printing.getPrinters();
+  const printers = await printing.getPrinters();
   for (const printer of printers) {
     const attributes = printer.cachedAttributes();
     console.log(
@@ -362,7 +362,7 @@ try {
 ### Listing Printers & Detailed Attributes
 ```js
 try {
-  const printers = await navigator.printing.getPrinters();
+  const printers = await printing.getPrinters();
   const promises = printers.map(printer => printer.fetchAttributes());
   Promise.all(promises).then((values) => {
     for (const attributes of values) {
@@ -378,7 +378,7 @@ try {
 ### Querying Printer State
 ```js
 try {
-  const printers = await navigator.printing.getPrinters();
+  const printers = await printing.getPrinters();
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
   const attributes = await printer.fetchAttributes();
@@ -392,7 +392,7 @@ try {
 ### Submitting a Print Job
 ```js
 try {
-  const printers = await navigator.printing.getPrinters();
+  const printers = await printing.getPrinters();
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
@@ -438,7 +438,7 @@ try {
 ### Canceling a Print Job
 ```js
 try {
-  const printers = await navigator.printing.getPrinters();
+  const printers = await printing.getPrinters();
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
@@ -455,7 +455,7 @@ try {
 ## Security & Privacy Considerations
 
 ### Fingerprinting
-The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `navigator.printing.getPrinters()` + `Printer.fetchAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
+The detailed information about the available local printers provide an [active fingerprinting](https://www.w3.org/TR/fingerprinting-guidance/#dfn-active-fingerprinting) surface. This is possible via the combination of `printing.getPrinters()` + `Printer.fetchAttributes()` API calls and does not require user consent. Some of these printer values are (but not limited to):
 * `printerId`
 * `printerName`
 * `printerMakeAndModel`
@@ -465,7 +465,7 @@ It's worth noting that printers are usually default-configured in private spaces
 A more intricate fingerprinting approach is to constantly track `printerState`/`printerStateMessage` fields for a specific printer; by observing the patterns in printer state changes (i.e. how often it goes from `busy` to `idle` and vice versa) a macilious website could reveal sensitive information about the user's printing behavior. This information could be used to build a profile of the user or to track their activities across multiple sites.
 
 #### Mitigation
-A basic precaution is to introduce a new permissions-policy called `"printing"` to `navigator.printing.getPrinters()`  to facilitate protection against malicious third-party iframes.
+A basic precaution is to introduce a new permissions-policy called `"printing"` to `printing.getPrinters()`  to facilitate protection against malicious third-party iframes.
 A more sophisticated approach would include creating a permissions surface resembling those for existing Web APIs like `serial` and `hid`: this is discussed in greater detail in the [Permissions UX](#permissions-ux) section.
 
 ### Forging Printer Jobs
