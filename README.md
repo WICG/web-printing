@@ -69,17 +69,17 @@ The following table specifies WebIDL type mapping for selected types listed in s
 
 | IPP Type | WebIDL Type |
 | :-------------: | :-------------: |
-| `text` | `DOMString` |
-| `name` | `DOMString` |
+| `text` | `USVString` |
+| `name` | `USVString` |
 | `keyword` | `enum` |
 | `enum` | `enum` |
-| `keyword` \| `name` | `DOMString` |
-| `uri` | `DOMString` |
+| `keyword` \| `name` | `USVString` |
+| `uri` | `USVString` |
 | `boolean` | `boolean` |
 | `integer` | `unsigned long` |
 | `1setOfX` | `sequence<X>` |
 | `rangeOfInteger` | `dictionary { unsigned long from, unsigned long to };` |
-| `octetString` | `DOMString` |
+| `octetString` | `USVString` |
 | `resolution` | `dictionary {`<br>`unsigned long crossFeedDirectionResolution,`<br>`unsigned long feedDirectionResolution,`<br> `PrintingResolutionUnits units`<br>`};` |
 | `collection` | `dictionary { ... }` |
 
@@ -123,7 +123,7 @@ interface Printer {
   Promise<PrinterAttributes> fetchAttributes();
 
   Promise<PrintJob> submitPrintJob(
-    DOMString title,
+    USVString title,
     required Blob document_data,
     optional PrintJobTemplateAttributes options = {});
 };
@@ -154,7 +154,7 @@ dictionary PrintingMediaSize {
 
 dictionary PrintingMediaCol {
   PrintingMediaSize mediaSize;
-  DOMString mediaSizeName;
+  USVString mediaSizeName;
   PrintingMediaSource mediaSource;
 };
 
@@ -187,14 +187,14 @@ dictionary PrintJobTemplateAttributes {
 };
 
 dictionary PrintJobAttributes {
-  DOMString jobId;
-  DOMString jobName;
+  USVString jobId;
+  USVString jobName;
 
-  DOMString printerId;
-  DOMString printerName;
+  USVString printerId;
+  USVString printerName;
 
   PrintJobState jobState;
-  DOMString jobStateMessage;
+  USVString jobStateMessage;
   sequence<PrintJobStateReason> jobStateReasons;
 
   AbortSignal abortSignal;
@@ -221,14 +221,14 @@ dictionary PrinterAttributes {
 
   boolean pageRangesSupported;
 
-  DOMString printerId;
-  DOMString printerName;
-  DOMString printerMakeAndModel;
+  USVString printerId;
+  USVString printerName;
+  USVString printerMakeAndModel;
 
   boolean printerIsDefault;
 
   PrinterState printerState;
-  DOMString printerStateMessage;
+  USVString printerStateMessage;
   sequence<PrinterStateReason> printerStateReasons;
 
   PrintingResolution printerResolutionDefault;
@@ -328,7 +328,7 @@ enum PrinterState {
   // ...
 };
 
-typedef DOMString PrintingMedia;
+typedef USVString PrintingMedia;
 
 ```
 
@@ -545,7 +545,7 @@ interface Printer {
   Promise<void> fetchAttributes();
 
   Promise<PrintJob> submitPrintJob(
-    DOMString title,
+    USVString title,
     required Blob document_data,
     optional object options = {});
 };
