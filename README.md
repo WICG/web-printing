@@ -124,7 +124,7 @@ interface Printer {
 
   Promise<PrintJob> submitPrintJob(
     DOMString title,
-    PrintingDocumentDescription document,
+    required Blob document_data,
     optional PrintJobTemplateAttributes options = {});
 };
 
@@ -168,11 +168,6 @@ dictionary PrintingResolution {
   unsigned long feedDirectionResolution;
   PrintingResolutionUnits units;
 };
-
-dictionary PrintingDocumentDescription {
-  required Blob data;
-  PrintingMimeMediaType documentFormat;
-};
 ```
 
 </details>
@@ -206,9 +201,6 @@ dictionary PrintJobAttributes {
 dictionary PrinterAttributes {
   unsigned short copiesDefault;
   PrintingRange copiesSupported;
-
-  PrintingMimeMediaType documentFormatDefault;
-  sequence<PrintingMimeMediaType> documentFormatSupported;
 
   sequence<PrintingJobCreationAttribute> jobCreationAttributesSupported;
 
@@ -396,10 +388,8 @@ try {
   const printer = printers.find(
     printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
 
-  const printJob = await printer.submitPrintJob("Sample Print Job", {
-    data: new Blob(...),
-    documentFormat: 'application/pdf',
-  }, {
+  const printJob = await printer.submitPrintJob("Sample Print Job",
+    new Blob(...), {
     copies: 2,
     media: 'iso_a4_210x297mm',
     multipleDocumentHandling: 'separate-documents-collated-copies',
@@ -534,7 +524,7 @@ interface Printing {
 
   Promise<PrintJobHandle> submitPrintJob(
     PrinterHandle,
-    DocumentDescription,
+    required Blob document_data,
     optional PrintJobTemplateAttributes = {});
   void cancelJob(PrintJobHandle);
 
@@ -554,7 +544,7 @@ interface Printer {
 
   Promise<PrintJob> submitPrintJob(
     DOMString title,
-    DocumentDescription document,
+    required Blob document_data,
     optional object options = {});
 };
 ```
