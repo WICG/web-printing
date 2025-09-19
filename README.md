@@ -570,3 +570,5 @@ Similar to how the `PrintJob` objects provides a subscription for state change e
 ### `attributes` as interface member for Printer and PrintJob
 It was originally planned to introduce `attributes` as an interface member to both `Printer` and `PrintJob` in a uniform fashion instead of wrapping them into getter functions; unfortunately, it's not possible to make a dictionary
 an interface member in WebIDL.
+Apart from that we really don't want to fetch all the attributes for all the printers right away because of performance reasons. That's where the `cachedAttributes` and `fetchAttributes` fit nicely, while having the fields on a printer object, but not being able to know whether they were fetched already or not, or they seemingly looking like real values while not being fetched yet, would be very confusing for users of the API.
+
