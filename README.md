@@ -58,7 +58,7 @@ Three new interfaces are introduced as part of the API:
   - `Promise<PrinterAttributes> fetchAttributes()` implements the `Get-Printer-Attributes` IPP operation and returns a promise that is settled once the operation completes. To reduce the number of printer connections, we offer an additional `PrinterAttributes cachedAttributes()` method within the `Printer` class that is initially populated from the OS cache and then gets updated every time `fetchAttributes()` is invoked.
   - `Promise<PrintJob> submitPrintJob(...)` implements the `Print-Job` IPP operation and allows developers to customize the print job via a subset of supported job template attributes specified in section [5.2 of RFC8011](https://www.rfc-editor.org/rfc/rfc8011#section-5.2).
 - The `PrintJob` interface provides a way to interact with print jobs: monitor their state changes and cancel on demand.
-  - `void cancel()` can be invoked to attempt to cancel a print job (you can also pass an `abortSignal` attribute via `PrintJobAttributes`).
+  - `void cancel()` can be invoked to attempt to cancel a print job (you can also pass an abort `signal` attribute via `PrintJobAttributes`).
   - `PrintJobAttributes attributes()` (and dictionary fields like `jobState`, `jobStateMessage` and `jobStateReasons`) and `attribute EventHandler onjobstatechange` allow developers to track the job state and wait for its completion.
 
 ## IPP Mapping
@@ -197,7 +197,7 @@ dictionary PrintJobAttributes {
   USVString jobStateMessage;
   sequence<PrintJobStateReason> jobStateReasons;
 
-  AbortSignal abortSignal;
+  AbortSignal signal;
 };
 
 dictionary PrinterAttributes {
