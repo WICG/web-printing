@@ -413,7 +413,7 @@ try {
         reject(/**/);
         return;
       }
-      if (jobState === PrintJobState.COMPLETED) {
+      if (jobState === "completed") {
         console.log("Job complete!");
         resolve(/**/);
         return;
