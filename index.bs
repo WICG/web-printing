@@ -1,0 +1,592 @@
+<pre class='metadata'>
+Title: Web Printing API
+Shortname: web-printing-api
+Level: 1
+Status: w3c/UD
+Group: wicg
+Repository: bylicaatgoogle/web-printing-api
+URL: https://github.com/bylica-at-google/web-printing-api
+Editor: Dominik Bylica, Google, https://google.com, bylica@google.com
+Abstract: This document defines a new Web Printing API that allows the app developers to build wonderful printer-related features by giving them direct access to printers in [=isolated contexts=].
+Complain About: accidental-2119 yes, missing-example-ids yes
+Markup Shorthands: markdown yes, css no
+</pre> 
+<pre class="link-defaults">
+  spec:dom; type:dfn; for:clone a node; text:document
+  spec:html; type:dfn; text:allowed to use
+  spec:html; type:interface; text:window
+  spec:permissions-policy; type:dfn; text:policy-controlled feature
+  spec:fileapi; type:interface; text:blob
+  spec:infra; type:dfn; text:user agent
+  spec:infra; type:dfn; for:/; text:set
+  spec:dom; type:dfn; text:origin
+  spec:html; type:method; for:Window; text:print()
+  spec:ecmascript; type:dfn; text:list
+</pre>
+
+Introduction {#intro}
+===
+
+The Web Printing API brings unprecedented flexibility to implementing printing
+features in [=isolated contexts=]. The API is not exposed in ordinary web contexts.
+
+Existing alternative {#intro-alternative}
+---
+
+There is a <code>window.{{Window/print()}}</code> method that exists, but it basically
+opens a print dialog and asks the user to do the rest. The Web Printing API
+gives app developers access to printers locally available to
+the operating system directly from the web applications in [=isolated contexts=],
+and allows submitting print jobs with custom
+print attributes (like paper size, color settings, quality, etc.).
+
+The Web Printing API features {#intro-features}
+---
+
+Using the Web Printing API you can:
+  - Submit print jobs straight from the code without any dialogs!
+  - Implement your own print dialogs!
+  - Print with custom print attributes without any user interaction!
+  - List printers and fetch their printer capabilities as well
+    as the printer state (idle, busy, etc.).
+    When knowing the printer capabilities, apps can prepare print-ready
+    files with specific print attributes.
+  - Automate printing in any way. Build previously repetitive printing
+    workflows.
+  - On top of all that, unlike with <code>window.{{Window/print()}}</code>,
+    you can observe the job state of your print jobs - whether they finished,
+    failed, etc.
+
+<div class="note">
+  The Web Printing API is modeled after the Internet Printing Protocol.
+  That means the printer capabilities and print attributes,
+  with their names, possible values, valid values, all
+  come from their definitions in the standards document defining
+  the Internet Printing Protocol (RFC8011).
+
+  Section 5 of the RFC8011 is especially helpful to learn more
+  (https://datatracker.ietf.org/doc/html/rfc8011#section-5).
+</div>
+
+
+Examples {#examples}
+===
+
+Listing Printers & Basic Attributes {#examples-listing-printers-basic}
+---
+
+<div class="example" id="examples-listing-printers-basic-example">
+  <pre highlight=js>
+    try {
+      const printers = await printing.getPrinters();
+      for (const printer of printers) {
+        const attributes = printer.cachedAttributes();
+        console.log(
+          `${attributes.printerName} has the following (basic) attributes: ${attributes}`);
+      }
+    } catch (err) {
+      console.warn("Printing operation failed: " + err);
+    }
+  </pre>
+</div>
+
+Listing Printers & Detailed Attributes {#examples-listing-printers-detailed}
+---
+
+<div class="example" id="examples-listing-printers-detailed-example">
+  <pre highlight=js>
+    try {
+      const printers = await printing.getPrinters();
+      const promises = printers.map(printer => printer.fetchAttributes());
+        Promise.all(promises).then((values) => {
+          for (const attributes of values) {
+            console.log(
+              `${attributes.printerName} has the following (detailed) attributes: ${attributes}`);
+          }
+        });
+    } catch (err) {
+      console.warn("Printing operation failed: " + err);
+    }
+  </pre>
+</div>
+
+Querying Printer State {#examples-querying-printer-state}
+---
+
+<div class="example" id="examples-querying-printer-state-example">
+  <pre highlight=js>
+    try {
+      const printers = await printing.getPrinters();
+      const printer = printers.find(
+          printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
+      const attributes = await printer.fetchAttributes();
+      console.log(
+        `${attributes.printerName}'s new state is ${attributes.printerState}!`);
+    } catch (err) {
+      console.warn("Printing operation failed: " + err);
+    }
+  </pre>
+</div>
+
+Submitting a Print Job {#examples-submitting-print-job}
+---
+
+<div class="example" id="examples-submitting-print-job-example">
+  <pre highlight=js>
+    try {
+      const printers = await printing.getPrinters();
+      const printer = printers.find(
+        printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
+
+      const printJob = await printer.submitPrintJob("Sample Print Job",
+        new Blob(...), {
+          copies: 2,
+          media: 'iso_a4_210x297mm',
+          multipleDocumentHandling: 'separate-documents-collated-copies',
+          printerResolution: {
+            crossFeedDirectionResolution: 300,
+            feedDirectionResolution: 400,
+            units: 'dots-per-inch'
+          },
+          sides: 'one-sided',
+          printQuality: 'high',
+          pageRanges: [{from: 1, to: 5}, {from: 7, to: 10}],
+        });
+
+      const printJobComplete = new Promise((resolve, reject) => {
+        printJob.onjobstatechange = () => {
+          const jobState = printJob.attributes().jobState;
+          if (IsErrorStatus(jobState)) {
+            console.warn(`Job errored: ${jobState}`);
+            reject(/**/);
+            return;
+          }
+          if (jobState === "completed") {
+            console.log("Job complete!");
+            resolve(/**/);
+            return;
+          }
+          console.log(`Job state changed to ${jobState}`);
+        };
+      });
+      await printJobComplete;
+    } catch (err) {
+      console.warn("Printing operation failed: " + err);
+    }
+  </pre>
+</div>
+
+Canceling a Print Job {#examples-canceling-print-job}
+---
+
+<div class="example" id="examples-cancelling-print-job-example">
+  <pre highlight=js>
+    try {
+      const printers = await printing.getPrinters();
+      const printer = printers.find(
+        printer => printer.cachedAttributes().printerName === 'Brother QL-820NWB');
+
+      const printJob = await printer.submitPrintJob(...);
+
+      // This might take no effect if the job has already finished.
+      printJob.cancel();
+
+    } catch (err) {
+      console.warn("Printing operation failed: " + err);
+    }
+  </pre>
+</div>
+
+
+Extensions to the {{Window}} interface {#window-interface}
+===
+
+<xmp class="idl">
+  [Exposed=Window, SecureContext, IsolatedContext]
+  partial interface Window {
+    [SameObject] readonly attribute WebPrintingManager printing;
+  };
+</xmp>
+
+Each {{Window}} object is associated with a unique instance of a {{WebPrintingManager}} object, allocated when the {{Window}} object is created.
+
+{{WebPrintingManager}} {#web-printing-manager-interface}
+===
+
+<xmp class="idl">
+  [Exposed=Window, SecureContext, IsolatedContext]
+  interface WebPrintingManager {
+    Promise<sequence<WebPrinter>> getPrinters();
+  };
+</xmp>
+
+The methods on this interface run some of their steps [=in parallel=], and
+queue tasks back on the main thread via the <dfn>web printing task source</dfn>.
+
+  <div algorithm=get-printers>
+    The {{WebPrintingManager/getPrinters()}} method steps are:
+
+    1. If [=this=]'s [=relevant global object=]'s [=associated Document=] is not [=allowed to use=] the [=policy-controlled feature=] named "[=web-printing=]", [=exception/throw=] a "{{NotAllowedError}}" {{DOMException}}.
+    1. Let |promise| be [=a new promise=].
+    1. Let |global| be [=this=]'s [=relevant global object=].
+    1. Run the following steps [=in parallel=]:
+        1. Let |local_printers| be all printers locally available to the operating system.
+        1. Let |attributes_list| be an empty [=list=] of {{WebPrinterAttributes}} dictionaries.
+        1. [=list/For each=] |printer| of |local_printers|:
+            1. Let |web_printer_attributes| be a new {{WebPrinterAttributes}} dictionary.
+            1. Set |web_printer_attributes|'s {{WebPrinterAttributes/printerName}} to |printer|'s name.
+            1. Set |web_printer_attributes|'s {{WebPrinterAttributes/printerId}} to |printer|'s id. The id MUST be obfuscated by returning a hex string representation of a SHA256 hash of itself.
+            1. Append |web_printer_attributes| to |attributes_list|.
+        1. [=Queue a global task=] on |global| using the [=web printing task source=] to run these steps:
+            1. Let |web_printers| be an empty [=list=] of {{WebPrinter}} objects.
+            1. [=list/For each=] |attributes| of |attributes_list|:
+                1. Let |web_printer| be a new {{WebPrinter}} whose [=WebPrinter/attributes=] is set to |attributes|.
+                1. Append |web_printer| to |web_printers|.
+            1. [=Resolve=] |promise| with |web_printers|.
+    1. Return |promise|.
+  </div>
+
+
+{{WebPrinter}} {#web-printer-interface}
+===
+
+<xmp class="idl">
+  [Exposed=Window, SecureContext, IsolatedContext]
+  interface WebPrinter {
+    WebPrinterAttributes cachedAttributes();
+    Promise<WebPrinterAttributes> fetchAttributes();
+    Promise<WebPrintJob> submitPrintJob(
+      USVString job_name,
+      Blob document_data,
+      optional WebPrintJobTemplateAttributes template_attributes = {});
+  };
+</xmp>
+
+Each {{WebPrinter}} has <dfn for=WebPrinter>attributes</dfn>, which are
+an instance of {{WebPrinterAttributes}}, initially containing only the
+{{WebPrinterAttributes/printerName}} and {{WebPrinterAttributes/printerId}},
+to obtain more, {{fetchAttributes()}} needs to be used.
+
+{{cachedAttributes()}} method returns the [=WebPrinter/attributes=].
+
+  <div algorithm=fetch-attributes>
+    The {{fetchAttributes()}} method steps are:
+    1. Let |promise| be [=a new promise=].
+    1. Run the following steps [=in parallel=]:
+        1. If there is any problem while communicating with the printer, [=reject=] |promise| with a new {{NetworkError}} {{DOMException}} and abort these steps.
+        1. Let |new_web_printer_attributes| be a new instance of {{WebPrinterAttributes}}.
+        1. Query the printer for printer capabilities. Let |printer_capabilities| be a list of returned capabilities.
+        1. [=list/For each=] |printer_capability| of |printer_capabilities|:
+          1. Perform the necessary mapping to conform the |printer_capability| with the {{WebPrinterAttributes}} dictionary according to the Internet Printing Protocol (RFC 8011).
+          1. Set the corresponding fields of |new_web_printer_attributes| with the mapped |printer_capability| (e.g. |printer_capability| related to media source should be mapped to valid values of {{WebPrinterAttributes/mediaSourceDefault}} and {{WebPrinterAttributes/mediaSourceSupported}}).
+        1. Query the printer for printer state. Set the {{WebPrinterAttributes/printerState}} of |new_web_printer_attributes| to the returned printer state value.
+        1. Set the [=WebPrinter/attributes=] to |new_web_printer_attributes|.
+        1. [=Resolve=] |promise| with |new_web_printer_attributes|.
+    1. Return |promise|.
+  </div>
+
+  <div algorithm=submit-print-job>
+    The {{submitPrintJob()}} method steps are:
+    1. Let |promise| be [=a new promise=].
+    1. Run the following steps [=in parallel=]:
+        1. If there is any problem while communicating with the printer, [=reject=] |promise| with a new {{NetworkError}} {{DOMException}} and abort these steps.
+        1. Use the algorithm from {{WebPrinter/fetchAttributes()}} to update [=WebPrinter/attributes=].
+        1. Let |printer| be an instance of {{WebPrinter}} the {{WebPrinter/submitPrintJob()}} is executed on.
+        1. [=list/For each=] |template_attribute| of {{template_attributes}}:
+          1. If |template_attribute| does not contain supported values checked against a corresponding |printer|'s [=WebPrinter/attributes=] (e.g. {{WebPrintJobTemplateAttributes/mediaSource}} checked against {{WebPrinterAttributes/mediaSourceSupported}}), [=reject=] |promise| with a new {{DataError}} {{DOMException}} and abort these steps.
+        1. Let |pdf_data| hold a PDF document data. Transform {{document_data}} {{Blob}} to a PDF document and set as value of |pdf_data|. If {{document_data}} is malformed, i.e. not a valid PDF document, [=reject=] |promise| with a new {{DataError}} {{DOMException}} and abort these steps.
+        1. Send |pdf_data| alongside with {{WebPrintJobTemplateAttributes}} and submit as a print job to the printer.
+        1. Let |print_job| be an instance of a {{WebPrintJob}} interface. Associate |print_job| with the print job just submitted to the printer.
+      1. [=Resolve=] |promise| with |print_job|.
+    1. Return |promise|.
+  </div>
+
+<div class="note">
+  {{signal}} of type {{AbortSignal}} can be used to {{cancel()}} print job as well.
+</div>
+
+{{WebPrintJob}} {#web-print-job-interface}
+===
+
+<xmp class="idl">
+  [Exposed=Window, SecureContext, IsolatedContext]
+  interface WebPrintJob : EventTarget {
+    WebPrintJobAttributes attributes();
+    undefined cancel();
+
+    attribute EventHandler onjobstatechange;
+  };
+</xmp>
+
+Each {{WebPrintJob}} has <dfn for=WebPrintJob>attributes</dfn>, which are
+an instance of {{WebPrintJobAttributes}}, initially empty.
+
+{{attributes()}} method returns [=WebPrintJob/attributes=] which shows
+the state the print job is in (e.g. how many pages completed).
+
+{{cancel()}} method aborts the print job immediately.
+
+<div class="note">
+Cancelling can be achieved using a {{signal}} param of type {{AbortSignal}}
+passed as a part of the {{WebPrintJobTemplateAttributes}} when calling
+the {{submitPrintJob()}} method.
+</div>
+
+{{onjobstatechange}} is the [=event handler IDL attribute=]
+for the {{onjobstatechange}} event type.
+The [=user agent=] MUST fire a {{onjobstatechange}} event whenever
+the {{WebPrintJobState}} or {{jobPagesCompleted}} of the print job changes.
+
+
+Data model {#data-model}
+===
+
+{{WebPrinterAttributes}} - dictionary representing the [=WebPrinter/attributes=].
+
+{{WebPrintJobTemplateAttributes}} - dictionary representing the print job attributes.
+
+<xmp class="idl">
+  dictionary WebPrinterAttributes {
+    USVString printerName;
+    USVString printerId;
+
+    unsigned long copiesDefault;
+    WebPrintingRange copiesSupported;
+
+    WebPrintingMediaCollection mediaColDefault;
+    sequence<WebPrintingMediaCollection> mediaColDatabase;
+
+    USVString mediaSourceDefault;
+    sequence<USVString> mediaSourceSupported;
+
+    WebPrintingMimeMediaType documentFormatDefault;
+    sequence<WebPrintingMimeMediaType> documentFormatSupported;
+
+    WebPrintingMultipleDocumentHandling multipleDocumentHandlingDefault;
+    sequence<WebPrintingMultipleDocumentHandling> multipleDocumentHandlingSupported;
+
+    WebPrintingOrientationRequested orientationRequestedDefault;
+    sequence<WebPrintingOrientationRequested> orientationRequestedSupported;
+
+    WebPrintingResolution printerResolutionDefault;
+    sequence<WebPrintingResolution> printerResolutionSupported;
+
+    WebPrintColorMode printColorModeDefault;
+    sequence<WebPrintColorMode> printColorModeSupported;
+
+    WebPrinterState printerState;
+    USVString printerStateMessage;
+    sequence<WebPrinterStateReason> printerStateReasons;
+
+    WebPrintQuality printQualityDefault;
+    sequence<WebPrintQuality> printQualitySupported;
+
+    WebPrintingSides sidesDefault;
+    sequence<WebPrintingSides> sidesSupported;
+  };
+
+  dictionary WebPrintJobTemplateAttributes {
+    unsigned long copies;
+
+    WebPrintingMediaCollectionRequested mediaCol;
+    USVString mediaSource;
+    WebPrintingMultipleDocumentHandling multipleDocumentHandling;
+    WebPrintingOrientationRequested orientationRequested;
+    WebPrintingResolution printerResolution;
+    WebPrintColorMode printColorMode;
+    WebPrintQuality printQuality;
+    WebPrintingSides sides;
+
+    AbortSignal signal;
+  };
+
+  dictionary WebPrintingRange {
+    unsigned long from;
+    unsigned long to;
+  };
+
+  dictionary WebPrintingResolution {
+    unsigned long crossFeedDirectionResolution;
+    unsigned long feedDirectionResolution;
+    WebPrintingResolutionUnits units;
+  };
+
+  typedef (WebPrintingRange or unsigned long) WebPrintingMediaSizeDimension;
+
+  dictionary WebPrintingMediaSize {
+    WebPrintingMediaSizeDimension yDimension;
+    WebPrintingMediaSizeDimension xDimension;
+  };
+
+  dictionary WebPrintingMediaCollection {
+    USVString mediaSizeName;
+    WebPrintingMediaSize mediaSize;
+  };
+
+  dictionary WebPrintingMediaSizeRequested {
+    required unsigned long yDimension;
+    required unsigned long xDimension;
+  };
+
+  dictionary WebPrintingMediaCollectionRequested {
+    required WebPrintingMediaSizeRequested mediaSize;
+  };
+
+  dictionary WebPrintJobAttributes {
+    USVString jobName;
+    unsigned long jobPages;
+    unsigned long jobPagesCompleted;
+    WebPrintJobState jobState;
+  };
+
+  enum WebPrintingMimeMediaType {
+    "application/pdf",
+  };
+
+  enum WebPrintingMultipleDocumentHandling {
+    "separate-documents-collated-copies",
+    "separate-documents-uncollated-copies",
+  };
+
+  enum WebPrintingOrientationRequested {
+    "portrait",
+    "landscape",
+  };
+
+  enum WebPrintingResolutionUnits {
+    "dots-per-inch",
+    "dots-per-centimeter",
+  };
+
+  enum WebPrintingSides {
+    "one-sided",
+    "two-sided-long-edge",
+    "two-sided-short-edge",
+  };
+
+  enum WebPrintQuality {
+    "draft",
+    "normal",
+    "high",
+  };
+
+  enum WebPrintColorMode {
+    "color",
+    "monochrome",
+  };
+
+  enum WebPrinterState {
+    "idle",
+    "processing",
+    "stopped",
+  };
+
+  enum WebPrinterStateReason {
+    "none",
+    "other",
+    "connecting-to-device",
+    "cover-open",
+    "developer-empty",
+    "developer-low",
+    "door-open",
+    "fuser-over-temp",
+    "fuser-under-temp",
+    "input-tray-missing",
+    "interlock-open",
+    "interpreter-resource-unavailable",
+    "marker-supply-empty",
+    "marker-supply-low",
+    "marker-waste-almost-full",
+    "marker-waste-full",
+    "media-empty",
+    "media-jam",
+    "media-low",
+    "media-needed",
+    "moving-to-paused",
+    "opc-life-over",
+    "opc-near-eol",
+    "output-area-almost-full",
+    "output-area-full",
+    "output-tray-missing",
+    "paused",
+    "shutdown",
+    "spool-area-full",
+    "stopped-partly",
+    "stopping",
+    "timed-out",
+    "toner-empty",
+    "toner-low",
+    "cups-pki-expired",
+  };
+
+  enum WebPrintJobState {
+    "preliminary",
+    "pending",
+    "processing",
+    "completed",
+    "canceled",
+    "aborted"
+  };
+</xmp>
+
+
+Privacy & Security Considerations {#privacy-security-considerations}
+===
+
+Potential issues {#privacy-security-issues}
+---
+
+### Fingerprinting ### {#privacy-security-issues-fingerprinting}
+
+The {{WebPrinter}} object exposes {{printerName}} and {{printerId}}
+[=WebPrinter/attributes=] that can be used for fingerprinting.
+
+### Forging print jobs ### {#privacy-security-issues-forging-print-jobs}
+
+Malicious code injection could lead to:
+  - unwanted print jobs being submitted to the printer,
+  - denial of service attack on printers .
+
+This MUST never happen in [=isolated context=].
+
+### Surveillance ### {#privacy-security-surveillance}
+
+Applications could potentially observe when printers are in use.
+
+Mitigating factors {#privacy-security-mitigating-factors}
+---
+
+<div class="note">
+  The IDL mandates that this API is only exposed in [=isolated context=].
+</div>
+
+### <dfn export>Permissions Policy</dfn> ### {#privacy-security-permission-policy}
+
+This specification defines a [=policy-controlled feature=] identified by
+the string "<dfn class="permission">web-printing</dfn>".
+Its [=policy-controlled feature/default allowlist=] is `"self"`.
+
+A [=document=]'s [=Document/permissions policy=] determines whether
+any content in that document is allowed to use {{getPrinters()}}. If disabled
+in any document, no content in the document will be [=allowed to use=]
+{{getPrinters()}}.
+
+### <dfn>User Consent</dfn> ### {#privacy-security-user-consent}
+
+Access to printers is a [=powerful feature=]. A user agent MUST NOT allow
+a web application to gain access to a {{WebPrinter}} object without
+[=express permission=].
+
+[=User consent=] MUST be obtained for a specific [=origin=].
+The request for consent MUST be triggered by a call to the
+{{WebPrintingManager/getPrinters()}} method. The user agent MUST display
+a permission promptthat clearly indicates which origin is requesting access
+and provides the user with enough information to make an informed decision.
+
+User agents SHOULD provide options for both transient
+(e.g., "for this session only") and persistent permission.
+To mitigate the risk of users forgetting they have granted persistent
+access, transient permission SHOULD be the default and more prominent option.
+
+Users MUST be provided with a mechanism to view and revoke any previously
+granted permissions for this API.
