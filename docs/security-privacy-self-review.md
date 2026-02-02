@@ -1,6 +1,5 @@
-# Early Self-Review Questionnaire: Security and Privacy
+## Responses to the [Self-Review Questionnaire: Security and Privacy](https://w3ctag.github.io/security-questionnaire/) for the [Direct Sockets API](https://github.com/WICG/direct-sockets/)
 
-## Security and Privacy questionnaire for the [`Web Printing API`](https://github.com/GrapeGreen/web-printing/blob/main/README.md)
 
 1. **What information might this feature expose to Web sites or other parties, and for what purposes is that exposure necessary?**
 
@@ -28,7 +27,7 @@
 
 7. **Does this specification allow an origin to send data to the underlying platform?**
 
-    Yes, it allows print jobs with documents to be sent to printers.
+    Yes -- it allows print jobs with documents to be sent to printers.
 
 8. **Do features in this specification enable access to device sensors?**
 
@@ -40,7 +39,7 @@
 
 10. **Do features in this specification allow an origin to access other devices?**
 
-    Yes. WebPrinting API allows an origin to access local printers.
+    Yes -- Web Printing API allows an origin to access local printers.
 
 11. **Do features in this specification allow an origin some measure of control over a user agent’s native UI?**
 
@@ -56,11 +55,11 @@
 
 14. **How do the features in this specification work in the context of a browser’s Private Browsing or Incognito mode?**
 
-    Printer permissions granted in incognito mode must not persist beyond the incognito session.
+    Not applicable -- this API is intended to be used in Isolated Web Apps (which do not support either mode).
 
 15. **Does this specification have both "Security Considerations" and "Privacy Considerations" sections?**
 
-    There is no specification written yet. The [explainer](https://github.com/GrapeGreen/web-printing/blob/main/README.md) does have a section on Security and Privacy Considerations.
+    The specification has a single Privacy & Security Considerations section that consists of potential issues and various mitigations.
 
 16. **Do features in your specification enable origins to downgrade default security protections?**
 
@@ -72,4 +71,4 @@
 
 18. **What should this questionnaire have asked?**
 
-N/A.
+    N/A.
